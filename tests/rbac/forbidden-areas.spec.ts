@@ -7,9 +7,8 @@ const ADMIN_AREA_PATH = '/admin';
 
 /**
  * Role-gate matrix only — crossing into another role's *area*. Resource-
- * ownership RBAC (an instructor's own course editor vs another's) needs a
- * course-editor page object that doesn't exist yet; that's deferred to the
- * instructor page objects phase (§10.3, tagged @dev-only there).
+ * ownership RBAC (one instructor's course editor vs another's) is covered in
+ * course-ownership.spec.ts.
  */
 const FORBIDDEN_MATRIX: Array<{ role: Role; path: string; title: string }> = [
     {

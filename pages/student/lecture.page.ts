@@ -134,8 +134,9 @@ export class LecturePage extends BasePage {
         await this.waitForComplete();
     }
 
+    /** Never waits: on the last lecture the button is disabled (or absent), not a link. */
     async hasNextLecture(): Promise<boolean> {
-        return this.nextLecture.isEnabled();
+        return (await this.nextLecture.count()) > 0 && (await this.nextLecture.getAttribute('href')) !== null;
     }
 
     /**

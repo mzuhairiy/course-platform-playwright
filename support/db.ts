@@ -1,6 +1,7 @@
 import { Client } from 'pg';
 import { getEnvironment } from '../config/environments';
 import { getDatabaseUrl } from '../config/database';
+import { THROWAWAY_NAME } from './unique';
 
 /**
  * Sweeps up the data this suite leaves behind. Direct DB access is limited to
@@ -20,7 +21,6 @@ import { getDatabaseUrl } from '../config/database';
  * are removed first.
  */
 const THROWAWAY_EMAIL_PATTERN = 'playwright-%@example.com';
-const THROWAWAY_NAME = 'Playwright Student';
 const SCRATCH_COURSE_TITLE_PATTERN = 'Automation Course %';
 
 export interface CleanupReport {
@@ -33,7 +33,7 @@ export interface CleanupReport {
 
 const EMPTY: CleanupReport = { accounts: 0, transactions: 0, certificates: 0, scratchCourses: 0 };
 
-/** `dryRun` only counts what would be removed; nothing is written. */
+/** `dryRun` only counts what would be removed (needs SELECT); nothing is written. */
 export async function cleanupTestData(options: { dryRun?: boolean } = {}): Promise<CleanupReport> {
     if (process.env.DB_CLEANUP === 'off') {
         return { ...EMPTY, skipped: 'DB_CLEANUP=off' };
@@ -50,28 +50,31 @@ export async function cleanupTestData(options: { dryRun?: boolean } = {}): Promi
     try {
         const users = `SELECT id FROM "User" WHERE email LIKE $1 AND name = $2`;
         const userParams = [THROWAWAY_EMAIL_PATTERN, THROWAWAY_NAME];
-        const count = async (sql: string, params: unknown[]) => Number((await client.query(sql, params)).rows[0].n);
 
-        const report: CleanupReport = {
-            accounts: await count(`SELECT count(*) AS n FROM "User" WHERE email LIKE $1 AND name = $2`, userParams),
-            transactions: await count(`SELECT count(*) AS n FROM "Transaction" WHERE "userId" IN (${users})`, userParams),
-            certificates: await count(`SELECT count(*) AS n FROM "Certificate" WHERE "userId" IN (${users})`, userParams),
-            scratchCourses: await count(`SELECT count(*) AS n FROM "Course" WHERE title LIKE $1`, [SCRATCH_COURSE_TITLE_PATTERN]),
-        };
-        if (options.dryRun) return report;
+        if (options.dryRun) {
+            // Counting needs SELECT. A real run below does not: it reads each
+            // DELETE's rowCount, so a DELETE-only database role is enough.
+            const count = async (sql: string, params: unknown[]) => Number((await client.query(sql, params)).rows[0].n);
+            return {
+                accounts: await count(`SELECT count(*) AS n FROM "User" WHERE email LIKE $1 AND name = $2`, userParams),
+                transactions: await count(`SELECT count(*) AS n FROM "Transaction" WHERE "userId" IN (${users})`, userParams),
+                certificates: await count(`SELECT count(*) AS n FROM "Certificate" WHERE "userId" IN (${users})`, userParams),
+                scratchCourses: await count(`SELECT count(*) AS n FROM "Course" WHERE title LIKE $1`, [SCRATCH_COURSE_TITLE_PATTERN]),
+            };
+        }
 
         await client.query('BEGIN');
         try {
-            await client.query(`DELETE FROM "Certificate" WHERE "userId" IN (${users})`, userParams);
-            await client.query(`DELETE FROM "Transaction" WHERE "userId" IN (${users})`, userParams);
-            await client.query(`DELETE FROM "User" WHERE email LIKE $1 AND name = $2`, userParams);
-            await client.query(`DELETE FROM "Course" WHERE title LIKE $1`, [SCRATCH_COURSE_TITLE_PATTERN]);
+            const certificates = (await client.query(`DELETE FROM "Certificate" WHERE "userId" IN (${users})`, userParams)).rowCount ?? 0;
+            const transactions = (await client.query(`DELETE FROM "Transaction" WHERE "userId" IN (${users})`, userParams)).rowCount ?? 0;
+            const accounts = (await client.query(`DELETE FROM "User" WHERE email LIKE $1 AND name = $2`, userParams)).rowCount ?? 0;
+            const scratchCourses = (await client.query(`DELETE FROM "Course" WHERE title LIKE $1`, [SCRATCH_COURSE_TITLE_PATTERN])).rowCount ?? 0;
             await client.query('COMMIT');
+            return { accounts, transactions, certificates, scratchCourses };
         } catch (error) {
             await client.query('ROLLBACK');
             throw error;
         }
-        return report;
     } finally {
         await client.end();
     }
