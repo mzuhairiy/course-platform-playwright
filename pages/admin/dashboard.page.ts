@@ -13,7 +13,7 @@ export class AdminDashboardPage extends BasePage {
     }
 
     async goto() {
-        await super.goto(DASHBOARD_PATH);
+        await this.navigate(DASHBOARD_PATH);
         await this.waitForLoad();
     }
 
