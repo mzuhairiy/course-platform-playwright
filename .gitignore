@@ -7,10 +7,15 @@ dist/
 /blob-report/
 /playwright/.cache/
 
+# Cached storageState sessions from config/global-setup.ts — environment-
+# namespaced filenames, but still a live session token, never commit these.
+/.auth/
+
 # Environment secrets — never commit real staging/production credentials.
 .env
 .env.*
 !.env.example
+AUTOMATION_PLAN.md
 
 npm-debug.log*
 .DS_Store

@@ -8,6 +8,7 @@ const env = getEnvironment();
 
 export default defineConfig({
     testDir: './tests',
+    globalSetup: './config/global-setup.ts',
     fullyParallel: true,
     forbidOnly: !!process.env.CI,
     timeout: env.timeout,

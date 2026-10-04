@@ -12,13 +12,21 @@
     "test:headed": "playwright test --headed",
     "test:debug": "playwright test --debug",
     "test:ui": "playwright test --ui",
+    "test:smoke": "playwright test --grep @smoke",
+    "test:critical": "playwright test --grep @critical",
+    "test:rbac": "playwright test --grep @rbac",
+    "test:portable": "playwright test --grep-invert @dev-only",
     "report": "playwright show-report",
     "type-check": "tsc --noEmit"
   },
   "devDependencies": {
     "@playwright/test": "^1.62.1",
     "@types/node": "^22.10.0",
+    "@types/pg": "^8.23.1",
     "dotenv": "^16.4.7",
     "typescript": "^5.7.2"
+  },
+  "dependencies": {
+    "pg": "^8.23.1"
   }
 }

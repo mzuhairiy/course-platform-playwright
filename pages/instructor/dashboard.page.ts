@@ -13,8 +13,17 @@ export class InstructorDashboardPage extends BasePage {
     }
 
     async goto() {
-        await super.goto(DASHBOARD_PATH);
+        await this.navigate(DASHBOARD_PATH);
         await this.waitForLoad();
+    }
+
+    /**
+     * Navigates without waiting for the dashboard: someone without the role is
+     * shown the forbidden page here instead, and a test about that must be able
+     * to land on it without timing out on a dashboard that never renders.
+     */
+    async visit() {
+        await this.navigate(DASHBOARD_PATH);
     }
 
     async waitForLoad() {
