@@ -15,7 +15,6 @@ dist/
 .env
 .env.*
 !.env.example
-AUTOMATION_PLAN.md
 
 npm-debug.log*
 .DS_Store
